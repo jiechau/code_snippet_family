@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, nocache">
+  <title>Beatrice · 加法星星島</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      color: #36254e;
+      background: #f3edfc;
+      display: grid;
+      place-items: center;
+    }
+    main { width: 100%; max-width: 520px; }
+    a { color: #69409d; text-underline-offset: 4px; }
+    .card {
+      margin-top: 24px;
+      padding: clamp(24px, 6vw, 40px);
+      border: 2px solid #e3d5f6;
+      border-radius: 28px;
+      background: white;
+      text-align: center;
+      box-shadow: 0 12px 36px #54347712;
+    }
+    .star { font-size: 48px; margin: 0; }
+    h1 { margin: 8px 0 12px; font-size: 2rem; }
+    .intro, .score { color: #655675; line-height: 1.7; }
+    .question-number { margin-top: 28px; font-weight: bold; color: #69409d; }
+    .equation { font-size: clamp(36px, 10vw, 56px); font-weight: bold; margin: 16px 0 24px; font-variant-numeric: tabular-nums; }
+    label { display: block; margin-bottom: 10px; font-weight: bold; }
+    input {
+      width: 100%;
+      min-height: 64px;
+      border: 2px solid #bca4d9;
+      border-radius: 14px;
+      padding: 10px;
+      font: inherit;
+      font-size: 2rem;
+      text-align: center;
+    }
+    button {
+      width: 100%;
+      min-height: 56px;
+      margin-top: 16px;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font: inherit;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+      background: #7542aa;
+      cursor: pointer;
+    }
+    button:hover { background: #5d318d; }
+    :focus-visible { outline: 3px solid #9a66cd; outline-offset: 4px; }
+    input:disabled { color: #655675; background: #f5f1f9; opacity: 1; }
+    #result { margin-top: 20px; line-height: 1.7; font-size: 1.1rem; }
+    #result.correct { color: #22603e; }
+    #result.incorrect { color: #8a4130; }
+    .score { margin: 24px 0 0; font-size: 0.95rem; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="index.html">← 回到 Beatrice 的遊戲</a>
+    <section class="card" aria-labelledby="title">
+      <p class="star" aria-hidden="true">🌟</p>
+      <h1 id="title">加法星星島</h1>
+      <p class="intro">Beatrice，一起練習兩位數加法！<br>慢慢想，不用趕時間。</p>
+      <p class="question-number" id="questionNumber"></p>
+      <p class="equation" id="question"></p>
+      <form id="answerForm" novalidate>
+        <label for="answer">你的答案</label>
+        <input id="answer" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" aria-describedby="result" aria-labelledby="question answerLabel">
+        <span id="answerLabel" hidden>你的答案</span>
+        <button id="checkButton" type="submit">確認答案</button>
+      </form>
+      <div id="result" role="status" aria-live="polite" aria-atomic="true"></div>
+      <button id="nextButton" type="button" hidden>下一題 →</button>
+      <p class="score" id="score">收集 0 顆星星 · 完成 0 題</p>
+      <noscript><p>請開啟 JavaScript，開始加法練習。</p></noscript>
+    </section>
+  </main>
+  <script>
+    const answer = document.getElementById('answer');
+    const question = document.getElementById('question');
+    const result = document.getElementById('result');
+    const checkButton = document.getElementById('checkButton');
+    const nextButton = document.getElementById('nextButton');
+    let left;
+    let right;
+    let answered = false;
+    let completed = 0;
+    let stars = 0;
+
+    function nextQuestion() {
+      const previous = [left, right].sort().join(',');
+      left = 10 + Math.floor(Math.random() * 90);
+      right = 10 + Math.floor(Math.random() * 90);
+      // Avoid immediately repeating the same addition, even in reverse order.
+      if ([left, right].sort().join(',') === previous) right = right === 99 ? 10 : right + 1;
+      answered = false;
+      question.textContent = `${left} + ${right} = ?`;
+      document.getElementById('questionNumber').textContent = `第 ${completed + 1} 題`;
+      answer.value = '';
+      answer.disabled = false;
+      answer.removeAttribute('aria-invalid');
+      result.textContent = '';
+      result.className = '';
+      checkButton.hidden = false;
+      nextButton.hidden = true;
+      answer.focus();
+    }
+
+    document.getElementById('answerForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (answered) return;
+      const guess = answer.value.trim();
+      if (!/^\d{1,3}$/.test(guess)) {
+        result.textContent = '請先填入整數答案，再按「確認答案」。';
+        result.className = 'incorrect';
+        answer.setAttribute('aria-invalid', 'true');
+        answer.focus();
+        return;
+      }
+      answered = true;
+      completed++;
+      const correct = Number(guess) === left + right;
+      if (correct) stars++;
+      answer.removeAttribute('aria-invalid');
+      result.className = correct ? 'correct' : 'incorrect';
+      result.textContent = correct
+        ? `⭐ 答對了！${left} + ${right} = ${left + right}。獲得一顆星星！`
+        : `再加油！你回答 ${Number(guess)}，正確答案是 ${left} + ${right} = ${left + right}。`;
+      document.getElementById('score').textContent = `收集 ${stars} 顆星星 · 完成 ${completed} 題`;
+      answer.disabled = true;
+      checkButton.hidden = true;
+      nextButton.hidden = false;
+      nextButton.focus();
+    });
+
+    nextButton.addEventListener('click', () => {
+      if (answered) nextQuestion();
+    });
+    nextQuestion();
+  </script>
+</body>
+</html>
