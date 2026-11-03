@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, nocache">
+  <title>mabel - spelling</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+    }
+    a.back {
+      color: #E91E63;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    a.back:hover { text-decoration: underline; }
+    h1 { color: #333; margin: 8px 0 16px; text-align: center; }
+    .layout {
+      display: flex;
+      gap: 16px;
+      max-width: 960px;
+      margin: 0 auto;
+      align-items: flex-start;
+    }
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .game { flex: 1; text-align: center; min-height: 360px; }
+    .words { width: 260px; flex-shrink: 0; }
+    .words h2 { margin: 0 0 8px; font-size: 1.1rem; }
+    @media (max-width: 700px) {
+      .layout { flex-direction: column-reverse; }
+      .words { width: auto; align-self: stretch; }
+      .game { align-self: stretch; }
+    }
+    button {
+      font-family: inherit;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #E91E63;
+      background: white;
+      border: 2px solid #E91E63;
+      border-radius: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover { background: #E91E63; color: white; }
+    button.primary { background: #E91E63; color: white; }
+    button.primary:hover { background: #C2185B; border-color: #C2185B; }
+    button.small { font-size: 0.95rem; padding: 6px 14px; }
+    button.big { font-size: 1.6rem; padding: 16px 32px; }
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      height: 220px;
+      font-size: 1.1rem;
+      font-family: inherit;
+      padding: 8px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      resize: vertical;
+    }
+    .hint { color: #777; font-size: 0.85rem; margin: 4px 0 10px; }
+    .speak-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 16px 0 24px; }
+    #answer {
+      font-size: 2rem;
+      padding: 10px 14px;
+      width: 100%;
+      max-width: 340px;
+      box-sizing: border-box;
+      text-align: center;
+      border: 3px solid #ddd;
+      border-radius: 12px;
+      letter-spacing: 2px;
+    }
+    #answer:focus { outline: none; border-color: #E91E63; }
+    .answer-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    #result { min-height: 110px; margin-top: 20px; }
+    .mark { font-size: 2.6rem; font-weight: bold; }
+    .mark.ok { color: #2E7D32; }
+    .mark.bad { color: #D32F2F; }
+    .correct-word { font-size: 2.2rem; letter-spacing: 3px; margin: 6px 0; }
+    .score { color: #777; margin-top: 12px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <p><a class="back" href="index.html">&larr; mabel</a></p>
+  <h1>Spelling 拼字練習</h1>
+
+  <div class="layout">
+    <div class="card game">
+      <div id="startView">
+        <p style="font-size:1.3rem">聽聲音，拼出單字！</p>
+        <button class="big primary" id="startBtn">▶ Start 開始</button>
+      </div>
+
+      <div id="playView" class="hidden">
+        <div class="speak-row">
+          <button class="big" id="againBtn">🔊 再唸一次</button>
+          <button id="slowBtn">🐢 慢慢唸</button>
+        </div>
+        <div class="answer-row">
+          <input id="answer" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button class="primary" id="checkBtn">OK</button>
+        </div>
+        <div id="result"></div>
+        <button class="big primary hidden" id="nextBtn">下一題 ➜</button>
+        <div class="score" id="score"></div>
+      </div>
+    </div>
+
+    <div class="card words">
+      <h2>單字表</h2>
+      <div id="editView">
+        <p class="hint">一行一個單字</p>
+        <textarea id="wordInput" spellcheck="false"></textarea>
+        <p style="text-align:right;margin:10px 0 0"><button class="primary small" id="saveBtn">完成</button></p>
+      </div>
+      <div id="savedView" class="hidden">
+        <p class="hint" id="wordCount"></p>
+        <button class="small" id="editBtn">✏️ 顯示 / 修改</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'mabel-spelling-words';
+    const DEFAULT_WORDS = ['pencil', 'bird', 'frog'];
+
+    const $ = (id) => document.getElementById(id);
+    let words = [];
+    let deck = [];
+    let current = null;
+    let answered = false;
+    let right = 0;
+    let total = 0;
+
+    function loadWords() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+      return null;
+    }
+
+    function storeWords(list) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+    }
+
+    function parseWords(text) {
+      const seen = new Set();
+      return text.split(/[\n,]+/)
+        .map((w) => w.trim().toLowerCase())
+        .filter((w) => w && !seen.has(w) && seen.add(w));
+    }
+
+    function showEditor() {
+      $('wordInput').value = words.join('\n');
+      $('editView').classList.remove('hidden');
+      $('savedView').classList.add('hidden');
+    }
+
+    function hideEditor() {
+      $('wordCount').textContent = words.length + ' 個單字';
+      $('editView').classList.add('hidden');
+      $('savedView').classList.remove('hidden');
+    }
+
+    function saveWords() {
+      const list = parseWords($('wordInput').value);
+      if (list.length === 0) {
+        alert('請至少輸入一個單字');
+        return;
+      }
+      words = list;
+      storeWords(words);
+      deck = [];
+      hideEditor();
+      // Restart the current question with the new list
+      if (!$('playView').classList.contains('hidden')) nextQuestion();
+    }
+
+    // Pick a voice once voices are available
+    let voice = null;
+    function pickVoice() {
+      const voices = speechSynthesis.getVoices();
+      voice = voices.find((v) => v.lang === 'en-US' && /Samantha|Google US English/.test(v.name))
+        || voices.find((v) => v.lang === 'en-US')
+        || voices.find((v) => v.lang.startsWith('en'))
+        || null;
+    }
+    if ('speechSynthesis' in window) {
+      pickVoice();
+      speechSynthesis.onvoiceschanged = pickVoice;
+    }
+
+    function speak(word, rate) {
+      if (!('speechSynthesis' in window)) {
+        alert('這個瀏覽器不支援發音');
+        return;
+      }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(word);
+      u.lang = 'en-US';
+      if (voice) u.voice = voice;
+      u.rate = rate;
+      speechSynthesis.speak(u);
+    }
+
+    // Shuffle the whole list so every word comes up once before any repeats
+    function drawWord() {
+      if (deck.length === 0) {
+        deck = words.slice();
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        if (deck.length > 1 && deck[deck.length - 1] === current) {
+          [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]];
+        }
+      }
+      return deck.pop();
+    }
+
+    function nextQuestion() {
+      current = drawWord();
+      answered = false;
+      $('answer').value = '';
+      $('answer').disabled = false;
+      $('checkBtn').disabled = false;
+      $('result').innerHTML = '';
+      $('nextBtn').classList.add('hidden');
+      $('answer').focus();
+      speak(current, 0.8);
+    }
+
+    function checkAnswer() {
+      if (answered) {
+        nextQuestion();
+        return;
+      }
+      const guess = $('answer').value.trim().toLowerCase();
+      if (!guess) return;
+      answered = true;
+      total++;
+      const ok = guess === current;
+      if (ok) right++;
+      $('result').innerHTML = ok
+        ? '<div class="mark ok">⭕ 答對了！</div><div class="correct-word">' + current + '</div>'
+        : '<div class="mark bad">❌ 再加油</div><div class="hint">正確答案</div><div class="correct-word">' + current + '</div>';
+      $('answer').disabled = true;
+      $('checkBtn').disabled = true;
+      $('score').textContent = '答對 ' + right + ' / ' + total;
+      $('nextBtn').classList.remove('hidden');
+      $('nextBtn').focus();
+    }
+
+    $('startBtn').onclick = () => {
+      if (words.length === 0) {
+        alert('請先在右邊輸入單字');
+        return;
+      }
+      $('startView').classList.add('hidden');
+      $('playView').classList.remove('hidden');
+      nextQuestion();
+    };
+    $('againBtn').onclick = () => { speak(current, 0.8); $('answer').focus(); };
+    $('slowBtn').onclick = () => { speak(current, 0.45); $('answer').focus(); };
+    $('checkBtn').onclick = checkAnswer;
+    $('answer').addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+    $('nextBtn').onclick = nextQuestion;
+    $('saveBtn').onclick = saveWords;
+    $('editBtn').onclick = showEditor;
+
+    const saved = loadWords();
+    if (saved && saved.length) {
+      words = saved;
+      hideEditor();
+    } else {
+      words = DEFAULT_WORDS.slice();
+      showEditor();
+    }
+  </script>
+</body>
+</html>
