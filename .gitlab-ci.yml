@@ -1,0 +1,13 @@
+pages:
+  stage: deploy
+  script:
+    # Copy every top-level file and folder (except dotfiles) into public/,
+    # so new folders deploy without editing this file.
+    - mkdir -p public
+    - find . -mindepth 1 -maxdepth 1 ! -name '.*' ! -name public -exec cp -r {} public/ \;
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+    - master
