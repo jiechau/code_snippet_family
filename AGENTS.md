@@ -9,3 +9,7 @@
 ## 修改與推送前自動 git pull
 
 每次需要新增、修改或刪除程式碼或其他版本控制檔案時，請先讀取並遵循 [.agents/skills/auto-pull/SKILL.md](.agents/skills/auto-pull/SKILL.md)，在第一次編輯前自動 git pull。每次 git push 前也必須再次 git pull；同步失敗或發生衝突時，保留現況並回報，不繼續編輯或推送。
+
+## 遊戲檔案安排
+
+新遊戲若能以單一 HTML 完整實作，沿用單一 HTML 的方式；若需要多個檔案，請為該遊戲建立專屬資料夾，將所需檔案集中放入其中。
