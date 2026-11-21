@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, nocache">
+  <title>mabel - 減法遊戲</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #fff6ec;
+      margin: 0;
+      padding: 16px;
+      color: #3a3340;
+    }
+    a.back { color: #E91E63; text-decoration: none; font-size: 0.95rem; }
+    a.back:hover { text-decoration: underline; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { text-align: center; margin: 8px 0 4px; font-size: clamp(1.6rem, 6vw, 2.2rem); }
+    .sub { text-align: center; color: #8a7a6f; margin: 0 0 16px; }
+    .card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 6px 20px rgba(120, 70, 30, 0.12);
+      padding: 20px;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #7c4dff; outline-offset: 3px; }
+
+    /* 選單 */
+    .modes { display: grid; gap: 14px; }
+    .mode {
+      display: flex; align-items: center; gap: 16px; text-align: left;
+      border: 3px solid #ffd2a8; background: #fffaf4; border-radius: 20px;
+      padding: 16px; font-size: 1.15rem; color: inherit;
+      transition: transform .15s, background .15s;
+    }
+    .mode:hover { transform: translateY(-2px); background: #fff0dd; }
+    .mode .icon { font-size: 2.6rem; flex-shrink: 0; }
+    .mode b { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+    .mode small { color: #8a7a6f; font-size: .95rem; }
+    .best { font-size: .9rem; color: #e67e22; margin-top: 4px; display: block; }
+
+    /* 遊戲 */
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .progress { display: flex; gap: 4px; flex-wrap: wrap; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; background: #eee3d8; }
+    .dot.ok { background: #4caf50; }
+    .dot.try { background: #ffb74d; }
+    .dot.now { outline: 3px solid #E91E63; }
+    .small-btn {
+      border: 2px solid #ffd2a8; background: white; border-radius: 12px;
+      padding: 6px 12px; font-size: 1rem; color: #8a5a3a;
+    }
+    .story {
+      font-size: clamp(1.25rem, 4.5vw, 1.6rem); line-height: 1.6;
+      text-align: center; margin: 10px 0; min-height: 2.6em;
+    }
+    .story .speak { border: 0; background: none; font-size: 1.4rem; vertical-align: middle; }
+    .story em { font-style: normal; color: #E91E63; font-weight: bold; }
+    .scene {
+      background: linear-gradient(#eef7ff, #e6f5e6);
+      border-radius: 20px; padding: 14px 8px; margin: 8px 0;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      min-height: 90px; justify-content: center;
+    }
+    .scene.hidden-scene { display: none; }
+    .row { display: flex; gap: 6px; justify-content: center; }
+    .item {
+      position: relative; width: clamp(46px, 13vw, 64px); height: clamp(46px, 13vw, 64px);
+      font-size: clamp(30px, 9vw, 44px); line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 14px; background: rgba(255,255,255,.75);
+      border: 2px solid transparent; padding: 0; user-select: none;
+      transition: opacity .3s, transform .3s;
+    }
+    button.item:hover { border-color: #ffb74d; }
+    .item.gone { opacity: .35; transform: scale(.88); }
+    .item.gone::after {
+      content: ""; position: absolute; inset: 6px;
+      background: linear-gradient(135deg, transparent 45%, #e53935 45%, #e53935 55%, transparent 55%);
+    }
+    .item.pop { animation: pop .4s; }
+    @keyframes pop { 50% { transform: scale(1.25); } }
+    .empty { color: #9aa; font-size: 1.1rem; }
+    .task { text-align: center; font-size: 1.1rem; color: #6a5a50; min-height: 1.6em; }
+
+    .equation {
+      display: flex; justify-content: center; align-items: center; gap: 10px;
+      font-size: clamp(2.4rem, 11vw, 3.4rem); font-weight: bold; margin: 10px 0;
+    }
+    .box {
+      min-width: 1.6em; height: 1.4em; border: 4px dashed #E91E63; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; color: #E91E63;
+      background: #fff5f8;
+    }
+    .box.right { border-style: solid; border-color: #4caf50; color: #2e7d32; background: #eefbea; }
+    .shake { animation: shake .4s; }
+    @keyframes shake { 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
+
+    .pad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+    .pad button {
+      font-size: clamp(1.4rem, 6vw, 1.9rem); font-weight: bold; padding: 10px 0;
+      border-radius: 16px; border: 3px solid #ffc48a; background: #fffaf4; color: #5a3a20;
+    }
+    .pad button:hover:not(:disabled) { background: #ffe8cc; }
+    .pad button:disabled { opacity: .35; cursor: default; }
+    .pad button.wrong { border-color: #e57373; background: #ffebee; color: #c62828; }
+
+    .feedback { text-align: center; font-size: 1.3rem; min-height: 2em; margin: 10px 0 0; font-weight: bold; }
+    .feedback.good { color: #2e7d32; }
+    .feedback.bad { color: #d84315; }
+    .next {
+      display: block; margin: 10px auto 0; font-size: 1.3rem; font-weight: bold;
+      background: #E91E63; color: white; border: 0; border-radius: 16px; padding: 12px 36px;
+    }
+    .hidden { display: none !important; }
+
+    /* 結果 */
+    .result { text-align: center; }
+    .result .stars { font-size: 3rem; letter-spacing: 6px; margin: 10px 0; }
+    .result p { font-size: 1.2rem; line-height: 1.7; }
+    .tip { background: #fff3c4; border-radius: 16px; padding: 12px 16px; text-align: left; line-height: 1.8; font-size: 1.05rem; }
+    .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+    .actions button { font-size: 1.15rem; padding: 10px 22px; border-radius: 14px; border: 3px solid #E91E63; background: white; color: #E91E63; font-weight: bold; }
+    .actions button.primary { background: #E91E63; color: white; }
+
+    .confetti { position: fixed; top: -40px; font-size: 28px; pointer-events: none; animation: fall 1.6s linear forwards; z-index: 10; }
+    @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      .card { padding: 14px; }
+      .pad { gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <p><a class="back" href="index.html">&larr; 回到 mabel</a></p>
+  <h1>🐰 減法小樂園</h1>
+  <p class="sub">拿走了幾個？還剩下幾個？一起來算算看！</p>
+
+  <!-- 選單 -->
+  <section class="card" id="menu">
+    <div class="modes">
+      <button class="mode" data-mode="take">
+        <span class="icon">👆</span>
+        <span><b>1. 動手拿拿看</b><small>自己點一點，把東西拿走，再數剩下幾個。</small><span class="best" data-best="take"></span></span>
+      </button>
+      <button class="mode" data-mode="look">
+        <span class="icon">👀</span>
+        <span><b>2. 看圖算算看</b><small>看圖上被劃掉的，算算還剩下幾個。</small><span class="best" data-best="look"></span></span>
+      </button>
+      <button class="mode" data-mode="zero">
+        <span class="icon">0️⃣</span>
+        <span><b>3. 0 的減法</b><small>全部拿走、一個也沒拿走，會剩下多少？</small><span class="best" data-best="zero"></span></span>
+      </button>
+      <button class="mode" data-mode="pure">
+        <span class="icon">🏆</span>
+        <span><b>4. 算式挑戰</b><small>只看算式就能算出答案！需要時可以看提示。</small><span class="best" data-best="pure"></span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 遊戲 -->
+  <section class="card hidden" id="game">
+    <div class="top">
+      <div class="progress" id="progress"></div>
+      <button class="small-btn" id="quit">回選單</button>
+    </div>
+    <div class="story" id="story"></div>
+    <div class="scene" id="scene"></div>
+    <div class="task" id="task"></div>
+    <div class="equation" id="equation"></div>
+    <div class="pad" id="pad"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <button class="next hidden" id="next">下一題 ➜</button>
+  </section>
+
+  <!-- 結果 -->
+  <section class="card result hidden" id="result">
+    <h2>🎉 完成了！</h2>
+    <div class="stars" id="stars"></div>
+    <p id="summary"></p>
+    <div class="tip">
+      💡 <b>動動腦發現：</b><br>
+      ・一個數減掉自己，剩下 <b>0</b>。例如 8 − 8 = 0、10 − 10 = 0。<br>
+      ・一個數減掉 <b>0</b>，什麼都沒拿走，答案還是自己。例如 5 − 0 = 5。
+    </div>
+    <div class="actions">
+      <button class="primary" id="again">再玩一次</button>
+      <button id="toMenu">換一種玩法</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const TOTAL = 10;
+  const THEMES = [
+    { e: '✏️', unit: '枝', name: '筆', place: '盒子裡', verb: '拿走了' },
+    { e: '🍎', unit: '個', name: '蘋果', place: '籃子裡', verb: '吃掉了' },
+    { e: '🎈', unit: '顆', name: '氣球', place: '小朋友手上', verb: '飛走了' },
+    { e: '🐟', unit: '條', name: '小魚', place: '池塘裡', verb: '游走了' },
+    { e: '🐤', unit: '隻', name: '小雞', place: '院子裡', verb: '跑走了' },
+    { e: '🍪', unit: '塊', name: '餅乾', place: '盤子上', verb: '吃掉了' },
+    { e: '🦋', unit: '隻', name: '蝴蝶', place: '花園裡', verb: '飛走了' },
+    { e: '🍓', unit: '顆', name: '草莓', place: '碗裡', verb: '吃掉了' },
+    { e: '🚗', unit: '輛', name: '小汽車', place: '停車場裡', verb: '開走了' },
+    { e: '⭐', unit: '顆', name: '星星貼紙', place: '本子上', verb: '撕掉了' },
+  ];
+  const CHEERS = ['答對了！好棒！🎉', '太厲害了！🌟', '你好聰明！👏', '完全正確！💯', '哇，答對囉！🥳'];
+
+  const $ = id => document.getElementById(id);
+  const ui = {
+    menu: $('menu'), game: $('game'), result: $('result'),
+    progress: $('progress'), story: $('story'), scene: $('scene'), task: $('task'),
+    equation: $('equation'), pad: $('pad'), feedback: $('feedback'), next: $('next'),
+  };
+
+  let mode, questions, idx, firstTry, q, tries, removed, done;
+
+  // ---------- 儲存最佳成績（瀏覽器裡） ----------
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem('mabel-sub-' + k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem('mabel-sub-' + k, JSON.stringify(v)); } catch {} },
+  };
+  function showBest() {
+    document.querySelectorAll('[data-best]').forEach(el => {
+      const b = store.get(el.dataset.best);
+      el.textContent = b != null ? `最佳成績：${'⭐'.repeat(starsFor(b))}（答對 ${b} 題）` : '';
+    });
+  }
+
+  // ---------- 音效與朗讀 ----------
+  let actx;
+  function beep(freqs) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      freqs.forEach((f, i) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.frequency.value = f; o.type = 'triangle';
+        const t = actx.currentTime + i * 0.12;
+        g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.26);
+      });
+    } catch {}
+  }
+  function say(text) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/−/g, '減').replace(/=/g, '等於'));
+    u.lang = 'zh-TW'; u.rate = 0.85;
+    const v = speechSynthesis.getVoices().find(v => v.lang === 'zh-TW');
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- 出題 ----------
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  function makeQuestions(m) {
+    const list = [];
+    let guard = 0;
+    while (list.length < TOTAL && guard++ < 500) {
+      let a, b;
+      if (m === 'zero') {
+        const kind = list.length % 3; // 減自己、減 0、剩 0 的混合
+        a = rand(1, 10);
+        b = kind === 1 ? 0 : a;
+        if (kind === 2) { a = rand(0, 10); b = Math.random() < .5 ? a : 0; }
+      } else {
+        a = rand(2, 10);
+        const r = Math.random();
+        b = r < .12 ? a : r < .2 ? 0 : rand(1, a - 1);
+        if (m === 'take' && b === 0) b = rand(1, a);
+      }
+      const prev = list[list.length - 1];
+      if (prev && prev.a === a && prev.b === b) continue;
+      if (list.filter(x => x.a === a && x.b === b).length >= 2) continue;
+      list.push({ a, b, t: THEMES[rand(0, THEMES.length - 1)] });
+    }
+    return list.sort(() => Math.random() - .5);
+  }
+
+  // ---------- 畫面 ----------
+  function show(section) {
+    [ui.menu, ui.game, ui.result].forEach(s => s.classList.toggle('hidden', s !== section));
+  }
+
+  function start(m) {
+    mode = m; questions = makeQuestions(m); idx = 0; firstTry = [];
+    show(ui.game); render();
+  }
+
+  function renderProgress() {
+    ui.progress.innerHTML = '';
+    for (let i = 0; i < TOTAL; i++) {
+      const d = document.createElement('span');
+      d.className = 'dot' + (i < idx ? (firstTry[i] ? ' ok' : ' try') : '') + (i === idx ? ' now' : '');
+      ui.progress.appendChild(d);
+    }
+  }
+
+  function storyText() {
+    const { a, b, t } = q;
+    return `${t.place}有 ${a} ${t.unit}${t.name}，${t.verb} ${b} ${t.unit}，還剩下幾${t.unit}？`;
+  }
+
+  function render() {
+    q = questions[idx]; tries = 0; removed = new Set(); done = false;
+    renderProgress();
+    ui.feedback.textContent = ''; ui.feedback.className = 'feedback';
+    ui.next.classList.add('hidden');
+
+    // 故事
+    const { a, b, t } = q;
+    ui.story.innerHTML = '';
+    if (mode === 'pure') {
+      ui.story.textContent = '算算看，答案是多少？';
+    } else {
+      ui.story.innerHTML = `${t.place}有 <em>${a}</em> ${t.unit}${t.name}，${t.verb} <em>${b}</em> ${t.unit}，還剩下幾${t.unit}？ `;
+      const sp = document.createElement('button');
+      sp.className = 'speak'; sp.textContent = '🔊'; sp.title = '唸給我聽';
+      sp.onclick = () => say(storyText());
+      ui.story.appendChild(sp);
+    }
+
+    // 圖
+    ui.scene.classList.toggle('hidden-scene', mode === 'pure');
+    drawScene(mode === 'look' || mode === 'zero' ? b : 0, mode === 'take');
+
+    // 算式
+    ui.equation.innerHTML = `<span>${a}</span><span>−</span><span>${b}</span><span>=</span><span class="box" id="box">?</span>`;
+
+    // 數字鍵
+    ui.pad.innerHTML = '';
+    for (let n = 0; n <= 10; n++) {
+      const btn = document.createElement('button');
+      btn.textContent = n;
+      btn.onclick = () => answer(n, btn);
+      ui.pad.appendChild(btn);
+    }
+    // 第 12 格放提示 / 朗讀
+    const extra = document.createElement('button');
+    extra.textContent = mode === 'pure' ? '💡' : '🔊';
+    extra.title = mode === 'pure' ? '看圖提示' : '唸給我聽';
+    extra.onclick = () => mode === 'pure' ? showHint() : say(storyText());
+    ui.pad.appendChild(extra);
+
+    updateTask();
+  }
+
+  // crossed: 一開始就劃掉的數量；clickable: 小朋友可以自己點
+  function drawScene(crossed, clickable) {
+    const { a, t } = q;
+    ui.scene.innerHTML = '';
+    if (a === 0) {
+      ui.scene.innerHTML = `<div class="empty">${t.place}一${t.unit}${t.name}也沒有（0 ${t.unit}）</div>`;
+      return;
+    }
+    let row;
+    for (let i = 0; i < a; i++) {
+      if (i % 5 === 0) { row = document.createElement('div'); row.className = 'row'; ui.scene.appendChild(row); }
+      const el = document.createElement(clickable ? 'button' : 'span');
+      el.className = 'item';
+      el.textContent = t.e;
+      // 劃掉的放在後面，跟課本一樣從右邊拿走
+      if (i >= a - crossed) el.classList.add('gone');
+      if (clickable) {
+        el.setAttribute('aria-label', `${t.name} ${i + 1}`);
+        el.onclick = () => toggleItem(i, el);
+      }
+      row.appendChild(el);
+    }
+  }
+
+  function toggleItem(i, el) {
+    if (done) return;
+    if (removed.has(i)) { removed.delete(i); el.classList.remove('gone'); }
+    else {
+      if (removed.size >= q.b) { flash(`只要拿走 ${q.b} ${q.t.unit}就好喔！`, 'bad'); return; }
+      removed.add(i); el.classList.add('gone');
+    }
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    beep([500 + removed.size * 40]);
+    updateTask();
+  }
+
+  function updateTask() {
+    const padLocked = mode === 'take' && removed.size < q.b;
+    ui.pad.querySelectorAll('button').forEach(b => { if (!b.classList.contains('wrong')) b.disabled = padLocked || done; });
+    if (mode === 'take') {
+      if (q.b === 0) ui.task.textContent = '一個也不用拿走喔！數數看還有幾個？';
+      else if (removed.size < q.b) ui.task.textContent = `👆 點一點，拿走 ${q.b} ${q.t.unit}（已經拿走 ${removed.size} ${q.t.unit}）`;
+      else ui.task.textContent = `拿走 ${q.b} ${q.t.unit}了！數數看沒被劃掉的還有幾${q.t.unit}？`;
+    } else if (mode === 'pure') {
+      ui.task.textContent = '';
+    } else {
+      ui.task.textContent = '數數看，沒有被劃掉的有幾個？';
+    }
+  }
+
+  function flash(msg, cls) {
+    ui.feedback.textContent = msg; ui.feedback.className = 'feedback ' + cls;
+  }
+
+  function showHint() {
+    ui.scene.classList.remove('hidden-scene');
+    drawScene(q.b, false);
+    ui.task.textContent = `${q.a} 個拿走 ${q.b} 個，數數看還剩幾個？`;
+  }
+
+  function answer(n, btn) {
+    if (done) return;
+    const right = q.a - q.b;
+    const box = $('box');
+    if (n === right) {
+      done = true;
+      box.textContent = n; box.classList.add('right');
+      firstTry[idx] = tries === 0;
+      let msg = CHEERS[rand(0, CHEERS.length - 1)];
+      if (q.b === q.a) msg += `　全部拿走，剩下 0！`;
+      else if (q.b === 0) msg += `　沒拿走，還是 ${q.a}！`;
+      flash(msg, 'good');
+      if (mode !== 'pure' || !ui.scene.classList.contains('hidden-scene')) drawScene(q.b, false);
+      beep([660, 880, 1100]);
+      confetti();
+      say(`${q.a} 減 ${q.b} 等於 ${right}`);
+      updateTask();
+      ui.task.textContent = mode === 'pure' ? '' : `剩下 ${right} ${q.t.unit}${q.t.name}`;
+      ui.next.textContent = idx === TOTAL - 1 ? '看成績 ➜' : '下一題 ➜';
+      ui.next.classList.remove('hidden');
+      ui.next.focus();
+    } else {
+      tries++;
+      btn.classList.add('wrong'); btn.disabled = true;
+      box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+      beep([220]);
+      if (mode === 'pure') showHint();
+      if (tries >= 2) {
+        if (mode === 'take' || mode === 'pure') drawScene(q.b, false);
+        flash(`沒關係！${q.a} 個拿走 ${q.b} 個，一個一個數沒劃掉的～`, 'bad');
+      } else {
+        flash(n > right ? '太多了，再數數看喔！' : '太少了，再數數看喔！', 'bad');
+      }
+    }
+  }
+
+  function nextQ() {
+    idx++;
+    if (idx >= TOTAL) return finish();
+    render();
+  }
+
+  function starsFor(score) { return score >= 10 ? 3 : score >= 7 ? 2 : 1; }
+
+  function finish() {
+    const score = firstTry.filter(Boolean).length;
+    const best = store.get(mode);
+    if (best == null || score > best) store.set(mode, score);
+    $('stars').textContent = '⭐'.repeat(starsFor(score)) + '☆'.repeat(3 - starsFor(score));
+    $('summary').innerHTML = `一次就答對 <b>${score}</b> 題（共 ${TOTAL} 題）<br>` +
+      (score === TOTAL ? 'Mabel 全部答對，好厲害！🏅' : score >= 7 ? '很棒喔！再練習一下就會全對！💪' : '慢慢數，一定會越來越厲害！🌱');
+    show(ui.result);
+    confetti(30);
+  }
+
+  function confetti(n = 12) {
+    const pieces = ['🎉', '⭐', '🌸', '🎈', '✨', '💖'];
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('span');
+      s.className = 'confetti';
+      s.textContent = pieces[rand(0, pieces.length - 1)];
+      s.style.left = rand(0, 95) + 'vw';
+      s.style.animationDelay = (Math.random() * .5) + 's';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 2300);
+    }
+  }
+
+  // ---------- 事件 ----------
+  document.querySelectorAll('.mode').forEach(b => b.onclick = () => start(b.dataset.mode));
+  ui.next.onclick = nextQ;
+  $('quit').onclick = () => { showBest(); show(ui.menu); };
+  $('again').onclick = () => start(mode);
+  $('toMenu').onclick = () => { showBest(); show(ui.menu); };
+  if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+  showBest();
+})();
+</script>
+</body>
+</html>
