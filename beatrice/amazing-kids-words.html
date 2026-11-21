@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, nocache">
+  <title>beatrice - Amazing Kids 單字遊戲</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: #f3f7ff;
+      margin: 0;
+      padding: 16px;
+      color: #2f3445;
+    }
+    a.back { color: #E91E63; text-decoration: none; font-size: 0.95rem; }
+    a.back:hover { text-decoration: underline; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { text-align: center; margin: 8px 0 4px; font-size: clamp(1.6rem, 6vw, 2.2rem); }
+    h1 span { color: #ef6f6c; }
+    .sub { text-align: center; color: #7a8093; margin: 0 0 16px; }
+    .card {
+      background: white; border-radius: 24px;
+      box-shadow: 0 6px 20px rgba(40, 60, 120, 0.12);
+      padding: 20px;
+    }
+    button { font-family: inherit; cursor: pointer; color: inherit; }
+    button:focus-visible { outline: 3px solid #7c4dff; outline-offset: 3px; }
+    .hidden { display: none !important; }
+
+    /* 選單 */
+    .modes { display: grid; gap: 14px; }
+    .mode {
+      display: flex; align-items: center; gap: 16px; text-align: left;
+      border: 3px solid #cfe0ff; background: #f8fbff; border-radius: 20px;
+      padding: 16px; font-size: 1.15rem; transition: transform .15s, background .15s;
+    }
+    .mode:hover { transform: translateY(-2px); background: #eaf2ff; }
+    .mode .icon { font-size: 2.6rem; flex-shrink: 0; }
+    .mode b { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+    .mode small { color: #7a8093; font-size: .95rem; }
+    .best { font-size: .9rem; color: #e67e22; margin-top: 4px; display: block; }
+    .groups { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 16px; }
+    .chip {
+      border: 2px solid #cfd6e6; background: white; border-radius: 999px;
+      padding: 6px 14px; font-size: 1rem;
+    }
+    .chip.on { background: #2f3445; color: white; border-color: #2f3445; }
+
+    /* 遊戲共用 */
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .progress { display: flex; gap: 4px; flex-wrap: wrap; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; background: #e3e8f2; }
+    .dot.ok { background: #4caf50; }
+    .dot.try { background: #ffb74d; }
+    .dot.now { outline: 3px solid #E91E63; }
+    .small-btn {
+      border: 2px solid #cfe0ff; background: white; border-radius: 12px;
+      padding: 6px 12px; font-size: 1rem; color: #3b5aa8;
+    }
+    .prompt { text-align: center; margin: 8px 0 14px; }
+    .big-emoji { font-size: clamp(3.5rem, 16vw, 5.5rem); line-height: 1.1; }
+    .zh { font-size: clamp(1.4rem, 5vw, 1.8rem); font-weight: bold; margin-top: 6px; }
+    .hint { color: #7a8093; font-size: 1rem; margin-top: 4px; }
+    .sentence { font-size: clamp(1.25rem, 4.6vw, 1.6rem); line-height: 1.6; margin: 8px 0; }
+    .blank {
+      display: inline-block; min-width: 4.5em; border-bottom: 3px solid #3b5aa8;
+      color: #3b5aa8; font-weight: bold; padding: 0 4px;
+    }
+    .speak-big {
+      border: 0; background: #ffe7a3; border-radius: 50%; width: 96px; height: 96px;
+      font-size: 3rem; box-shadow: 0 4px 0 #e8c25b;
+    }
+    .speak-big:active { transform: translateY(3px); box-shadow: 0 1px 0 #e8c25b; }
+    .speak { border: 0; background: none; font-size: 1.5rem; vertical-align: middle; padding: 0 4px; }
+
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .choice {
+      border: 3px solid #d8e2f5; background: #fbfcff; border-radius: 18px;
+      padding: 16px 10px; font-size: clamp(1.1rem, 4.4vw, 1.45rem); font-weight: bold;
+      min-height: 74px; transition: transform .1s;
+    }
+    .choice:hover { transform: translateY(-2px); }
+    .choice.right { background: #c8f0cb; border-color: #4caf50; }
+    .choice.wrong { background: #ffd6d6; border-color: #ef5350; opacity: .6; }
+    .choice small { display: block; font-weight: normal; font-size: .85rem; color: #6b7285; margin-top: 4px; }
+
+    .feedback { text-align: center; min-height: 2.2em; font-size: 1.2rem; margin: 12px 0 4px; }
+    .next {
+      display: block; margin: 8px auto 0; border: 0; background: #3b5aa8; color: white;
+      border-radius: 16px; padding: 12px 30px; font-size: 1.2rem;
+    }
+
+    /* 字卡 */
+    .flash {
+      border-radius: 22px; padding: 22px 16px; text-align: center; min-height: 260px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;
+    }
+    .flash .en { font-size: clamp(1.8rem, 8vw, 2.6rem); font-weight: bold; }
+    .flash .ex { font-size: 1.15rem; color: #4b5164; margin-top: 8px; }
+    .flash .ex-zh { font-size: 1rem; color: #7a8093; }
+    .flash-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+    .flash-nav button { border: 2px solid #cfe0ff; background: white; border-radius: 14px; padding: 10px 18px; font-size: 1.1rem; }
+    .cat-red { background: #ffe9e6; }
+    .cat-blue { background: #e3f1ff; }
+    .cat-green { background: #eaf6dc; }
+    .tag { font-size: .85rem; border-radius: 999px; padding: 2px 10px; background: rgba(0,0,0,.06); }
+
+    /* 拼字 */
+    .slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 0; }
+    .slot {
+      width: 44px; height: 52px; border-bottom: 4px solid #3b5aa8; font-size: 1.8rem;
+      font-weight: bold; display: flex; align-items: center; justify-content: center;
+      background: #f5f8ff; border-radius: 8px 8px 0 0;
+    }
+    .slot.bad { background: #ffd6d6; animation: shake .3s; }
+    .slot.good { background: #c8f0cb; }
+    .tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .tile {
+      width: 50px; height: 54px; border: 0; border-radius: 12px; background: #ffe7a3;
+      box-shadow: 0 4px 0 #e8c25b; font-size: 1.7rem; font-weight: bold;
+    }
+    .tile:disabled { visibility: hidden; }
+    .spell-tools { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+    @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+    /* 結果 */
+    .result { text-align: center; }
+    .stars { font-size: 3rem; letter-spacing: 6px; }
+    .review { text-align: left; margin: 12px auto; max-width: 420px; }
+    .review li { margin: 6px 0; font-size: 1.05rem; }
+    .confetti { position: fixed; top: -40px; font-size: 28px; pointer-events: none; animation: fall 1.6s linear forwards; z-index: 10; }
+    @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+
+    @media (max-width: 420px) {
+      .slot { width: 34px; height: 46px; font-size: 1.5rem; }
+      .tile { width: 44px; height: 50px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <p><a class="back" href="index.html">&larr; beatrice</a></p>
+  <h1><span>Amazing Kids</span> 單字遊戲</h1>
+  <p class="sub">Unit 6 · 20 個單字和片語</p>
+
+  <!-- 選單 -->
+  <section id="menu" class="card">
+    <div class="groups" id="groups"></div>
+    <div class="modes">
+      <button class="mode" data-mode="flash"><span class="icon">🃏</span><span><b>單字卡</b><small>看圖、聽發音、讀例句，先認識單字</small></span></button>
+      <button class="mode" data-mode="listen"><span class="icon">👂</span><span><b>聽一聽，選一選</b><small>聽英文發音，找出正確的字</small><span class="best" data-best="listen"></span></span></button>
+      <button class="mode" data-mode="meaning"><span class="icon">🖼️</span><span><b>看中文選英文</b><small>看圖和中文意思，選出英文</small><span class="best" data-best="meaning"></span></span></button>
+      <button class="mode" data-mode="sentence"><span class="icon">✏️</span><span><b>句子填空</b><small>讀句子，把缺少的字放進去</small><span class="best" data-best="sentence"></span></span></button>
+      <button class="mode" data-mode="spell"><span class="icon">🔤</span><span><b>拼字挑戰</b><small>聽發音，用字母拼出單字</small><span class="best" data-best="spell"></span></span></button>
+    </div>
+  </section>
+
+  <!-- 遊戲 -->
+  <section id="game" class="card hidden">
+    <div class="top">
+      <button class="small-btn" id="quit">← 回選單</button>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div id="stage"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <button class="next hidden" id="next">下一題 →</button>
+  </section>
+
+  <!-- 結果 -->
+  <section id="result" class="card result hidden"></section>
+</main>
+
+<script>
+const WORDS = [
+  { en: 'take pictures (of)', say: 'take pictures of', ans: 'take pictures', cat: 'red', emoji: '📸', zh: '拍照',
+    sent: 'I like to ___ of flowers.', sentZh: '我喜歡拍花的照片。' },
+  { en: 'take a break', say: 'take a break', ans: 'take a break', cat: 'red', emoji: '☕', zh: '休息一下',
+    sent: 'We are tired. Let\'s ___.', sentZh: '我們累了，休息一下吧。' },
+  { en: 'make fun of', say: 'make fun of', ans: 'make fun of', cat: 'red', emoji: '😝', zh: '取笑、嘲笑',
+    sent: 'Please don\'t ___ your friends.', sentZh: '請不要取笑你的朋友。' },
+  { en: 'daydream', say: 'daydream', ans: 'daydream', cat: 'red', emoji: '💭', zh: '做白日夢',
+    sent: 'Tom likes to ___ in class.', sentZh: 'Tom 喜歡在課堂上做白日夢。' },
+  { en: 'pretend', say: 'pretend', ans: 'pretend', cat: 'red', emoji: '🎭', zh: '假裝',
+    sent: 'Let\'s ___ we are cats. Meow!', sentZh: '我們來假裝是貓咪。喵！' },
+  { en: 'classroom', say: 'classroom', ans: 'classroom', cat: 'blue', emoji: '🏫', zh: '教室',
+    sent: 'We read books in the ___.', sentZh: '我們在教室裡讀書。' },
+  { en: 'news', say: 'news', ans: 'news', cat: 'blue', emoji: '📺', zh: '新聞',
+    sent: 'Dad watches the ___ on TV.', sentZh: '爸爸在電視上看新聞。' },
+  { en: 'proud of their child', say: 'proud of their child', ans: 'proud of their child', cat: 'green', emoji: '👨‍👩‍👧', zh: '以孩子為榮',
+    sent: 'The mom and dad are ___.', sentZh: '爸爸媽媽以孩子為榮。' },
+  { en: 'famous', say: 'famous', ans: 'famous', cat: 'green', emoji: '🌟', zh: '有名的',
+    sent: 'The kids are on TV. They are ___ now!', sentZh: '孩子們上電視了，現在很有名！' },
+  { en: 'dark', say: 'dark', ans: 'dark', cat: 'green', emoji: '🌑', zh: '暗的、黑暗的',
+    sent: 'It is ___ at night.', sentZh: '晚上天很暗。' },
+  { en: 'bright', say: 'bright', ans: 'bright', cat: 'green', emoji: '☀️', zh: '明亮的',
+    sent: 'The sun is very ___.', sentZh: '太陽非常明亮。' },
+  { en: 'important', say: 'important', ans: 'important', cat: 'green', emoji: '❗', zh: '重要的',
+    sent: 'Water is very ___ for plants.', sentZh: '水對植物非常重要。' },
+  { en: 'different', say: 'different', ans: 'different', cat: 'green', emoji: '🍎🍌', zh: '不同的',
+    sent: 'An apple and a banana are ___.', sentZh: '蘋果和香蕉是不一樣的。' },
+  { en: 'confused', say: 'confused', ans: 'confused', cat: 'green', emoji: '😕', zh: '困惑的、搞不懂的',
+    sent: 'I don\'t understand. I am ___.', sentZh: '我不懂，我覺得很困惑。' },
+  { en: 'ready', say: 'ready', ans: 'ready', cat: 'green', emoji: '✅', zh: '準備好的',
+    sent: 'Are you ___? Let\'s go!', sentZh: '你準備好了嗎？出發吧！' },
+  { en: 'light', say: 'light', ans: 'light', cat: 'green', emoji: '🪶', zh: '輕的',
+    sent: 'A feather is very ___.', sentZh: '羽毛非常輕。' },
+  { en: 'weak', say: 'weak', ans: 'weak', cat: 'green', emoji: '🤒', zh: '虛弱的、沒力氣的',
+    sent: 'I am sick. I feel ___.', sentZh: '我生病了，覺得沒力氣。' },
+  { en: 'rich', say: 'rich', ans: 'rich', cat: 'green', emoji: '💰', zh: '有錢的',
+    sent: 'The king has a lot of gold. He is ___.', sentZh: '國王有很多金子，他很有錢。' },
+  { en: 'poor', say: 'poor', ans: 'poor', cat: 'green', emoji: '🥺', zh: '貧窮的',
+    sent: 'The ___ man has no money.', sentZh: '這個窮人沒有錢。' },
+  { en: 'thick', say: 'thick', ans: 'thick', cat: 'green', emoji: '📚', zh: '厚的',
+    sent: 'This dictionary is very ___.', sentZh: '這本字典非常厚。' },
+];
+
+const GROUPS = [
+  { id: 'all', label: '全部' },
+  { id: 'red', label: '🔴 動作片語' },
+  { id: 'blue', label: '🔵 名詞' },
+  { id: 'green', label: '🟢 形容詞' },
+];
+const CAT_NAME = { red: '動作', blue: '名詞', green: '形容詞' };
+const ROUND = 10;
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function store(key, val) {
+  try {
+    if (val === undefined) return JSON.parse(localStorage.getItem('beatrice-u6-' + key));
+    localStorage.setItem('beatrice-u6-' + key, JSON.stringify(val));
+  } catch (e) { return null; }
+}
+
+// ---- 發音 ----
+let voice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+  voice = vs.find(v => /samantha|google us|jenny|aria/i.test(v.name)) || vs.find(v => /en[-_]US/i.test(v.lang)) || vs[0] || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text, rate = 0.85) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = rate;
+  if (voice) u.voice = voice;
+  speechSynthesis.speak(u);
+}
+const fullSentence = w => w.sent.replace('___', w.ans);
+
+// ---- 單字範圍 ----
+let group = store('group') || 'all';
+function pool() { return group === 'all' ? WORDS : WORDS.filter(w => w.cat === group); }
+function renderGroups() {
+  $('groups').innerHTML = GROUPS.map(g =>
+    `<button class="chip ${g.id === group ? 'on' : ''}" data-g="${g.id}">${g.label}</button>`).join('');
+}
+$('groups').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  group = b.dataset.g; store('group', group); renderGroups();
+});
+
+function renderBest() {
+  document.querySelectorAll('[data-best]').forEach(el => {
+    const b = store('best-' + el.dataset.best);
+    el.textContent = b ? `最佳紀錄：${'⭐'.repeat(b)}` : '';
+  });
+}
+
+// ---- 流程 ----
+let mode, questions, idx, results, firstTry, locked;
+
+function show(id) {
+  ['menu', 'game', 'result'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  window.scrollTo(0, 0);
+}
+function backToMenu() { speechSynthesis && speechSynthesis.cancel(); renderGroups(); renderBest(); show('menu'); }
+$('quit').onclick = backToMenu;
+
+document.querySelector('.modes').addEventListener('click', e => {
+  const b = e.target.closest('.mode'); if (!b) return;
+  start(b.dataset.mode);
+});
+
+function start(m) {
+  mode = m;
+  let p = pool();
+  if (m === 'spell') {
+    p = p.filter(w => !w.ans.includes(' '));
+    if (!p.length) p = WORDS.filter(w => !w.ans.includes(' '));
+  }
+  if (m === 'flash') {
+    questions = p.slice(); idx = 0;
+    $('progress').innerHTML = '';
+    show('game'); renderFlash(); return;
+  }
+  // 題目數：不足 ROUND 時重複出現
+  let qs = [];
+  while (qs.length < ROUND) qs = qs.concat(shuffle(p));
+  questions = qs.slice(0, ROUND);
+  idx = 0; results = [];
+  show('game'); ask();
+}
+
+function renderProgress() {
+  $('progress').innerHTML = questions.map((_, i) => {
+    const r = results[i];
+    return `<span class="dot ${r === 'ok' ? 'ok' : r === 'try' ? 'try' : ''} ${i === idx ? 'now' : ''}"></span>`;
+  }).join('');
+}
+
+// 從所有單字挑干擾選項（優先同類）
+function distractors(w, n) {
+  const same = shuffle(WORDS.filter(x => x !== w && x.cat === w.cat));
+  const other = shuffle(WORDS.filter(x => x !== w && x.cat !== w.cat));
+  return same.concat(other).slice(0, n);
+}
+
+function ask() {
+  locked = false; firstTry = true;
+  $('feedback').textContent = '';
+  $('next').classList.add('hidden');
+  renderProgress();
+  const w = questions[idx];
+  if (mode === 'spell') return renderSpell(w);
+  const opts = shuffle([w, ...distractors(w, 3)]);
+  let head = '';
+  if (mode === 'listen') {
+    head = `<div class="prompt"><button class="speak-big" id="say" aria-label="再聽一次">🔊</button><div class="hint">點喇叭可以再聽一次</div></div>`;
+  } else if (mode === 'meaning') {
+    head = `<div class="prompt"><div class="big-emoji">${w.emoji}</div><div class="zh">${esc(w.zh)}</div><div class="hint">這是哪一個英文？</div></div>`;
+  } else {
+    const s = esc(w.sent).replace('___', '<span class="blank" id="blank">?</span>');
+    head = `<div class="prompt"><div class="big-emoji" style="font-size:3rem">${w.emoji}</div><div class="sentence">${s}</div><button class="small-btn" id="zhBtn" onclick="this.outerHTML='<div class=hint>'+this.dataset.zh+'</div>'" data-zh="${esc(w.sentZh)}">看不懂？看中文提示</button></div>`;
+  }
+  const label = o => mode === 'sentence' ? o.ans : o.en;
+  $('stage').innerHTML = head + `<div class="choices">${opts.map((o, i) =>
+    `<button class="choice" data-i="${i}">${esc(label(o))}</button>`).join('')}</div>`;
+  if (mode === 'listen') { $('say').onclick = () => speak(w.say); setTimeout(() => speak(w.say), 250); }
+  $('stage').querySelectorAll('.choice').forEach(btn => {
+    btn.onclick = () => choose(btn, opts[+btn.dataset.i], w);
+  });
+}
+
+function choose(btn, picked, w) {
+  if (locked || btn.classList.contains('wrong')) return;
+  if (picked === w) {
+    locked = true;
+    btn.classList.add('right');
+    btn.insertAdjacentHTML('beforeend', `<small>${esc(w.zh)}</small>`);
+    if (mode === 'sentence') {
+      $('blank').textContent = w.ans; speak(fullSentence(w));
+      if ($('zhBtn')) $('zhBtn').click();
+    }
+    else speak(w.say);
+    results[idx] = firstTry ? 'ok' : 'try';
+    $('feedback').textContent = firstTry ? pick(['太棒了！🎉', 'Great job! 👏', '答對了！🌟', 'Amazing! ✨']) : '對了！下次一定可以一次答對 💪';
+    if (firstTry) burst(6);
+    renderProgress();
+    $('next').classList.remove('hidden');
+    $('next').focus({ preventScroll: true });
+  } else {
+    firstTry = false;
+    btn.classList.add('wrong');
+    btn.insertAdjacentHTML('beforeend', `<small>${esc(picked.zh)}</small>`);
+    $('feedback').textContent = '再想想看～ 🤔';
+    if (mode === 'listen') setTimeout(() => speak(w.say), 400);
+  }
+}
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+$('next').onclick = () => {
+  idx++;
+  if (idx >= questions.length) finish(); else ask();
+};
+
+// ---- 拼字 ----
+let spellState;
+function renderSpell(w) {
+  const letters = w.ans.split('');
+  spellState = { w, letters, filled: [], used: [] };
+  const tiles = shuffle(letters.map((c, i) => ({ c, i })));
+  $('stage').innerHTML = `
+    <div class="prompt">
+      <div class="big-emoji">${w.emoji}</div>
+      <div class="zh">${esc(w.zh)} <button class="speak" id="say" aria-label="聽發音">🔊</button></div>
+    </div>
+    <div class="slots" id="slots">${letters.map(() => '<div class="slot"></div>').join('')}</div>
+    <div class="tiles" id="tiles">${tiles.map((t, k) => `<button class="tile" data-k="${k}" data-c="${t.c}">${t.c}</button>`).join('')}</div>
+    <div class="spell-tools">
+      <button class="small-btn" id="undo">⌫ 退一格</button>
+      <button class="small-btn" id="hintBtn">💡 提示一個字母</button>
+    </div>`;
+  $('say').onclick = () => speak(w.say);
+  setTimeout(() => speak(w.say), 250);
+  $('tiles').addEventListener('click', e => {
+    const t = e.target.closest('.tile'); if (!t || locked) return;
+    placeLetter(t);
+  });
+  $('undo').onclick = () => {
+    if (locked || !spellState.used.length) return;
+    const t = spellState.used.pop(); spellState.filled.pop();
+    t.disabled = false; drawSlots();
+  };
+  $('hintBtn').onclick = () => {
+    if (locked) return;
+    firstTry = false;
+    const need = spellState.letters[spellState.filled.length];
+    const t = [...$('tiles').querySelectorAll('.tile:not(:disabled)')].find(x => x.dataset.c === need);
+    if (t) placeLetter(t);
+  };
+}
+function drawSlots(bad) {
+  const slots = $('slots').children;
+  for (let i = 0; i < slots.length; i++) {
+    slots[i].textContent = spellState.filled[i] || '';
+    slots[i].className = 'slot' + (bad && i === spellState.filled.length - 1 ? ' bad' : '');
+  }
+}
+function placeLetter(t) {
+  const s = spellState;
+  const pos = s.filled.length;
+  if (t.dataset.c !== s.letters[pos]) {
+    // 放錯：顯示紅色再拿掉
+    firstTry = false;
+    s.filled.push(t.dataset.c); drawSlots(true); s.filled.pop();
+    $('feedback').textContent = '這個字母不對喔，再試試 🤔';
+    setTimeout(() => { if (spellState === s) drawSlots(); }, 450);
+    return;
+  }
+  s.filled.push(t.dataset.c); s.used.push(t); t.disabled = true;
+  $('feedback').textContent = '';
+  drawSlots();
+  if (s.filled.length === s.letters.length) {
+    locked = true;
+    [...$('slots').children].forEach(x => x.classList.add('good'));
+    speak(s.w.say);
+    results[idx] = firstTry ? 'ok' : 'try';
+    $('feedback').textContent = firstTry ? `${s.w.ans}！完全正確 🎉` : `${s.w.ans}！拼好了 👍`;
+    if (firstTry) burst(6);
+    renderProgress();
+    $('next').classList.remove('hidden');
+    $('next').focus({ preventScroll: true });
+  }
+}
+
+// ---- 單字卡 ----
+function renderFlash() {
+  const w = questions[idx];
+  $('feedback').textContent = '';
+  $('next').classList.add('hidden');
+  $('stage').innerHTML = `
+    <div class="flash cat-${w.cat}">
+      <span class="tag">${CAT_NAME[w.cat]}</span>
+      <div class="big-emoji">${w.emoji}</div>
+      <div class="en">${esc(w.en)} <button class="speak" id="sayW" aria-label="聽單字">🔊</button></div>
+      <div class="zh">${esc(w.zh)}</div>
+      <div class="ex">${esc(fullSentence(w))} <button class="speak" id="sayS" aria-label="聽例句">🔊</button></div>
+      <div class="ex-zh">${esc(w.sentZh)}</div>
+    </div>
+    <div class="flash-nav">
+      <button id="prev">← 上一張</button>
+      <span>${idx + 1} / ${questions.length}</span>
+      <button id="fwd">下一張 →</button>
+    </div>`;
+  $('sayW').onclick = () => speak(w.say);
+  $('sayS').onclick = () => speak(fullSentence(w));
+  $('prev').onclick = () => { idx = (idx - 1 + questions.length) % questions.length; renderFlash(); };
+  $('fwd').onclick = () => { idx = (idx + 1) % questions.length; renderFlash(); };
+  speak(w.say);
+}
+
+// ---- 結果 ----
+function finish() {
+  const ok = results.filter(r => r === 'ok').length;
+  const stars = ok >= questions.length ? 3 : ok >= questions.length * 0.7 ? 2 : 1;
+  const best = store('best-' + mode) || 0;
+  if (stars > best) store('best-' + mode, stars);
+  const missed = [...new Set(questions.filter((_, i) => results[i] !== 'ok'))];
+  $('result').innerHTML = `
+    <div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+    <h2>${stars === 3 ? '全部一次答對！Amazing Kid! 🏆' : stars === 2 ? '很棒喔！🎉' : '完成了！多練習會更厲害 💪'}</h2>
+    <p>一次答對 ${ok} / ${questions.length} 題</p>
+    ${missed.length ? `<p>再複習一下這些字：</p><ul class="review">${missed.map(w =>
+      `<li>${w.emoji} <b>${esc(w.en)}</b> ${esc(w.zh)} <button class="speak" data-say="${esc(w.say)}">🔊</button></li>`).join('')}</ul>` : ''}
+    <button class="next" id="again">再玩一次</button>
+    <button class="small-btn" id="toMenu" style="margin-top:12px">回選單</button>`;
+  $('result').querySelectorAll('[data-say]').forEach(b => b.onclick = () => speak(b.dataset.say));
+  $('again').onclick = () => start(mode);
+  $('toMenu').onclick = backToMenu;
+  show('result');
+  if (stars === 3) burst(30);
+}
+
+function burst(n) {
+  const icons = ['🎉', '⭐', '✨', '🌟', '🎈'];
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div');
+    s.className = 'confetti';
+    s.textContent = pick(icons);
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.animationDelay = Math.random() * 0.5 + 's';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 2200);
+  }
+}
+
+renderGroups();
+renderBest();
+</script>
+</body>
+</html>
